@@ -17,7 +17,7 @@ Explanation for the directory:
 		http://www.slimmerleven2020.org/nieuws/opening-slimmer-leven-huis-dutch-technology-week
 - DTW Parktheather_Opening
 		The official start of the DTW opening at the parktheater had a general concept. "The robots are already among the people" and welcomed, entertained and informed the visitors. All files included what were used during the opening. 
-- DTW Control Panel
+- DTW Control Panel (Tested on LINUX)
 		To control multiple NAO's at once to create a solid performance we wrote an interface. README file inside with all the additional software you'll need to use to get yourself up and running. 
 		
 <p><a href="https://vimeo.com/168183210">FHICT Delta NAO&#039;s @ DTW 2016</a> from <a href="https://vimeo.com/user38620387">Roel Cuijpers</a> on <a href="https://vimeo.com">Vimeo</a>.</p>
