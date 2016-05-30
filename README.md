@@ -2,4 +2,4 @@ DTW 2016 - NAO Project
 -----------------------
 -----------------------
 
-Description
+Project we did for the Dutch Technology Week 2016.
