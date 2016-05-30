@@ -20,5 +20,4 @@ Explanation for the directory:
 - DTW Control Panel
 		To control multiple NAO's at once to create a solid performance we wrote an interface. README file inside with all the additional software you'll need to use to get yourself up and running. 
 		
-<iframe src="https://player.vimeo.com/video/168183210" width="640" height="360" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen></iframe>
 <p><a href="https://vimeo.com/168183210">FHICT Delta NAO&#039;s @ DTW 2016</a> from <a href="https://vimeo.com/user38620387">Roel Cuijpers</a> on <a href="https://vimeo.com">Vimeo</a>.</p>
