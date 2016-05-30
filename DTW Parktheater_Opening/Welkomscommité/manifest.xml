@@ -1,0 +1,19 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<package uuid="dtw_welkomscommite-467589">
+ <names>
+  <name lang="en_US">DTW_WelkomsCommite</name>
+ </names>
+ <supportedLanguages>
+  <language>nl_NL</language>
+ </supportedLanguages>
+ <descriptionLanguages>
+  <language>en_US</language>
+  <language>nl_NL</language>
+ </descriptionLanguages>
+ <contents>
+  <behaviorContent path="DTW_welkomscommite">
+   <nature>interactive</nature>
+   <permissions/>
+  </behaviorContent>
+ </contents>
+</package>

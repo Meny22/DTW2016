@@ -1,0 +1,15 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<package uuid="dtw_flashmob_nopump-aa043a">
+ <names>
+  <name lang="en_US">DTW_Flashmob_NoPump</name>
+ </names>
+ <descriptionLanguages>
+  <language>en_US</language>
+ </descriptionLanguages>
+ <contents>
+  <behaviorContent path="DTW_thriller">
+   <nature></nature>
+   <permissions/>
+  </behaviorContent>
+ </contents>
+</package>

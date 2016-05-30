@@ -1,0 +1,15 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<package uuid="pushupsnao_dtw-c6fa34">
+ <names>
+  <name lang="en_US">DTW_Pushups</name>
+ </names>
+ <descriptionLanguages>
+  <language>en_US</language>
+ </descriptionLanguages>
+ <contents>
+  <behaviorContent path="DTW_Pushups">
+   <nature></nature>
+   <permissions/>
+  </behaviorContent>
+ </contents>
+</package>

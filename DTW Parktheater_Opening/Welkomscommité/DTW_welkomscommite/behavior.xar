@@ -1,0 +1,1626 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ChoregrapheProject xmlns="http://www.aldebaran-robotics.com/schema/choregraphe/project.xsd" xar_version="3">
+    <Box name="root" id="-1" localization="8" tooltip="Root box of Choregraphe&apos;s behavior. Highest level possible." x="0" y="0">
+        <bitmap>media/images/box/root.png</bitmap>
+        <script language="4">
+            <content>
+                <![CDATA[]]>
+</content>
+        </script>
+        <Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when diagram is loaded." id="1" />
+        <Input name="onStart" type="1" type_size="1" nature="2" inner="0" tooltip="Box behavior starts when a signal is received on this input." id="2" />
+        <Input name="onStop" type="1" type_size="1" nature="3" inner="0" tooltip="Box behavior stops when a signal is received on this input." id="3" />
+        <Output name="onStopped" type="1" type_size="1" nature="1" inner="0" tooltip="Signal sent when box behavior is finished." id="4" />
+        <Timeline enable="0">
+            <BehaviorLayer name="behavior_layer1">
+                <BehaviorKeyframe name="keyframe1" index="1">
+                    <Diagram>
+                        <Box name="Basic Awareness" id="4" localization="8" tooltip="This box is an interface to the module ALBasicAwareness.&#x0A;&#x0A;It is a simple way to make the robot establish and keep eye contact with people.&#x0A;&#x0A;V1.1.0" x="181" y="198">
+                            <bitmap>media/images/box/tracker/basicawareness.png</bitmap>
+                            <script language="4">
+                                <content>
+                                    <![CDATA[class MyClass(GeneratedClass):
+    def __init__(self):
+        GeneratedClass.__init__(self)
+
+    def onLoad(self):
+        #put initialization code here
+        try:
+            self.awareness = ALProxy('ALBasicAwareness')
+        except Exception as e:
+            self.awareness = None
+            self.logger.error(e)
+
+        self.memory = ALProxy('ALMemory')
+
+        self.isRunning = False
+        self.trackedHuman = -1
+
+        import threading
+        self.subscribingLock = threading.Lock()
+
+        self.BIND_PYTHON(self.getName(), "setParameter")
+
+
+    def onUnload(self):
+        if self.isRunning:
+            if self.awareness:
+                self.awareness.stopAwareness()
+                self.setALMemorySubscription(False)
+            self.isRunning = False
+
+
+    def onInput_onStart(self):
+        if self.isRunning:
+            return # already running, nothing to do
+
+        self.isRunning = True
+        self.trackedHuman = -1
+        if self.awareness:
+            self.awareness.setEngagementMode(self.getParameter('Engagement Mode'))
+            self.awareness.setTrackingMode(self.getParameter('Tracking Mode'))
+            self.awareness.setStimulusDetectionEnabled('Sound', self.getParameter('Sound Stimulus'))
+            self.awareness.setStimulusDetectionEnabled('Movement', self.getParameter('Movement Stimulus'))
+            self.awareness.setStimulusDetectionEnabled('People', self.getParameter('People Stimulus'))
+            self.awareness.setStimulusDetectionEnabled('Touch', self.getParameter('Touch Stimulus'))
+            self.setALMemorySubscription(True)
+            self.awareness.startAwareness()
+
+
+
+    def onInput_onStop(self):
+        if not self.isRunning:
+            return # already stopped, nothing to do
+
+        self.onUnload()
+        self.onStopped()
+
+
+    def setParameter(self, parameterName, newValue):
+        GeneratedClass.setParameter(self, parameterName, newValue)
+
+        if self.awareness:
+            if parameterName == 'Sound Stimulus':
+                self.awareness.setStimulusDetectionEnabled('Sound', newValue)
+            elif parameterName == 'Movement Stimulus':
+                self.awareness.setStimulusDetectionEnabled('Movement', newValue)
+            elif parameterName == 'People Stimulus':
+                self.awareness.setStimulusDetectionEnabled('People', newValue)
+            elif parameterName == 'Touch Stimulus':
+                self.awareness.setStimulusDetectionEnabled('Touch', newValue)
+
+
+    # callbacks for ALBasicAwareness events
+    def onStimulusDetected(self, eventName, stimulusName, subscriberIdentifier):
+        self.StimulusDetected(stimulusName)
+
+    def onHumanTracked(self, eventName, humanID, subscriberIdentifier):
+        self.trackedHuman = humanID
+        self.HumanTracked(humanID)
+
+    def onHumanLost(self, eventName, subscriberIdentifier):
+        self.HumanLost(self.trackedHuman)
+        self.trackedHuman = -1
+
+
+    def setALMemorySubscription(self, subscribe):
+        self.subscribingLock.acquire()
+        if subscribe:
+            self.memory.subscribeToEvent('ALBasicAwareness/StimulusDetected', self.getName(), 'onStimulusDetected')
+            self.memory.subscribeToEvent('ALBasicAwareness/HumanTracked', self.getName(), 'onHumanTracked')
+            self.memory.subscribeToEvent('ALBasicAwareness/HumanLost', self.getName(), 'onHumanLost')
+        else:
+            self.memory.unsubscribeToEvent('ALBasicAwareness/StimulusDetected', self.getName())
+            self.memory.unsubscribeToEvent('ALBasicAwareness/HumanTracked', self.getName())
+            self.memory.unsubscribeToEvent('ALBasicAwareness/HumanLost', self.getName())
+
+        self.subscribingLock.release()]]>
+</content>
+                            </script>
+                            <Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when diagram is loaded." id="1" />
+                            <Input name="onStart" type="1" type_size="1" nature="2" inner="0" tooltip="Starts the Basic Awareness with the given Engagement and Tracking mode parameters, using the given stimuli." id="2" />
+                            <Input name="onStop" type="1" type_size="1" nature="3" inner="0" tooltip="Stops the Basic Awareness." id="3" />
+                            <Output name="onStopped" type="1" type_size="1" nature="1" inner="0" tooltip="Signal sent when box behavior is finished." id="4" />
+                            <Output name="StimulusDetected" type="3" type_size="1" nature="2" inner="0" tooltip="This output is stimulated when BasicAwareness detects a stimulus amongst the tracked stimulus.&#x0A;&#x0A;The output data is the stimulus&apos; name." id="5" />
+                            <Output name="HumanTracked" type="2" type_size="1" nature="2" inner="0" tooltip="This output is triggered when ALBasicAwareness detects a stimulus that is confirmed to be a human.&#x0A;&#x0A;The output data is the ID corresponding to the tracked human. It is shared with PeoplePerception and can be used there. This output is triggered with -1 if ALBasicAwareness tried to detect a human but failed." id="6" />
+                            <Output name="HumanLost" type="2" type_size="1" nature="2" inner="0" tooltip="This output is triggered when the human currently tracked is lost.&#x0A;&#x0A; The output data is the ID corresponding to the lost human. It can be reused in PeoplePerception." id="7" />
+                            <Parameter name="Engagement Mode" inherits_from_parent="0" content_type="3" value="FullyEngaged" default_value="Unengaged" custom_choice="0" tooltip='The engagement mode specifies how &quot;focused&quot; the robot is on the engaged person.' id="8">
+                                <Choice value="Unengaged" />
+                                <Choice value="FullyEngaged" />
+                                <Choice value="SemiEngaged" />
+                            </Parameter>
+                            <Parameter name="Tracking Mode" inherits_from_parent="0" content_type="3" value="Head" default_value="Head" custom_choice="0" tooltip="The tracking mode describes how the robot keeps eye contact with an engaged person." id="9">
+                                <Choice value="Head" />
+                                <Choice value="BodyRotation" />
+                                <Choice value="WholeBody" />
+                            </Parameter>
+                            <Parameter name="Sound Stimulus" inherits_from_parent="0" content_type="0" value="1" default_value="1" tooltip="" id="10" />
+                            <Parameter name="Movement Stimulus" inherits_from_parent="0" content_type="0" value="1" default_value="1" tooltip="" id="11" />
+                            <Parameter name="People Stimulus" inherits_from_parent="0" content_type="0" value="1" default_value="1" tooltip="" id="12" />
+                            <Parameter name="Touch Stimulus" inherits_from_parent="0" content_type="0" value="1" default_value="1" tooltip="" id="13" />
+                        </Box>
+                        <Box name="Hello" id="1" localization="8" tooltip="Simple hello animation.&#x0A;&#x0A;!!Warning!! There is no speech in this box. It is a just an animation box with some&#x0A;leds animation." x="551" y="161">
+                            <bitmap>media/images/box/movement/move.png</bitmap>
+                            <script language="4">
+                                <content>
+                                    <![CDATA[class MyClass(GeneratedClass):
+    def __init__(self):
+        GeneratedClass.__init__(self, False)
+
+    def onLoad(self):
+        #~ puts code for box initialization here
+        pass
+
+    def onUnload(self):
+        #~ puts code for box cleanup here
+        pass
+
+    def onInput_onStart(self):
+        #~ self.onStopped() #~ activate output of the box
+        pass
+
+    def onInput_onStop(self):
+        self.onUnload() #~ it is recommanded to call onUnload of this box in a onStop method, as the code written in onUnload is used to stop the box as well
+        pass]]>
+</content>
+                            </script>
+                            <Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when Diagram is loaded." id="1" />
+                            <Input name="onStart" type="1" type_size="1" nature="2" inner="0" tooltip="Box behavior starts when a signal is received on this input." id="2" />
+                            <Input name="onStop" type="1" type_size="1" nature="3" inner="0" tooltip="Box behavior stops when a signal is received on this input." id="3" />
+                            <Output name="onStopped" type="1" type_size="1" nature="1" inner="0" tooltip="Signal sent when box behavior is finished." id="4" />
+                            <Timeline enable="1" fps="25" start_frame="1" end_frame="-1" size="115">
+                                <BehaviorLayer name="behavior_layer1">
+                                    <BehaviorKeyframe name="FaceLeds" index="1">
+                                        <Diagram>
+                                            <Box name="Light_AskForAttentionEyes" id="1" localization="8" tooltip="Set an animated gaze which calls for attention (purple eyes).&#x0A;&#x0A;Note: It is a never ending box. You must call onStop to stop it.&#x0A;&#x0A;*** state: 5a_release ***&#x0A;*** ref box in: 5a_release\Leds\Light_AskForAttentionEyes\Light_AskForAttentionEyes.xar ***&#x0A;*** last modification date(svn): Version it! ***" x="281" y="144">
+                                                <bitmap>media/images/box/interaction/LED.png</bitmap>
+                                                <script language="4">
+                                                    <content>
+                                                        <![CDATA[class MyClass(GeneratedClass):
+  def __init__(self):
+    GeneratedClass.__init__(self, False)
+
+  def onLoad(self):
+    self.bIsRunning = False;
+    self.leds = ALProxy("ALLeds")
+
+  def onUnload(self):
+    self.onInput_onStop(); # will stop current loop execution
+
+  def onInput_onStart(self):
+    #self.logger.info( self.getName() + ": start - begin" );
+
+    if( self.bIsRunning ):
+      #print( self.getName() + ": already started => nothing" );
+      return;
+
+    self.bIsRunning = True;
+    self.bMustStop = False;
+
+    rDuration = 0.2;
+    self.leds.post.fadeRGB( "FaceLedsTop", 0xff00ff, rDuration );
+    self.leds.post.fadeRGB( "FaceLedsInternal", 0xff00ff, rDuration );
+    self.leds.post.fadeRGB( "FaceLedsBottom", 0xff00ff, rDuration );
+    self.leds.fadeRGB( "FaceLedsExternal", 0xff00ff, rDuration );
+
+    while( not self.bMustStop ):
+      rTime = 0.1;
+      self.leds.post.fadeRGB( "FaceLedsTop", 0xffffff, rTime );
+      self.leds.fadeRGB( "FaceLedsBottom", 0xffffff, rTime );
+      if( self.bMustStop ):
+        break;
+      rTime = 0.3
+      self.leds.post.fadeRGB( "FaceLedsTop", 0xff00ff, rTime );
+      self.leds.fadeRGB( "FaceLedsBottom", 0xff00ff, rTime );
+
+
+    # end while
+    self.bIsRunning = False;
+    self.onStopped();
+
+  def onInput_onStop(self):
+    self.bMustStop = True; # will stop current loop execution]]>
+</content>
+                                                </script>
+                                                <Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when diagram is loaded." id="1" />
+                                                <Input name="onStart" type="1" type_size="1" nature="2" inner="0" tooltip="Box behavior starts when a signal is received on this input." id="2" />
+                                                <Input name="onStop" type="1" type_size="1" nature="3" inner="0" tooltip="Box behavior stops when a signal is received on this input." id="3" />
+                                                <Output name="onStopped" type="1" type_size="1" nature="1" inner="0" tooltip="Signal sent when box behavior is finished." id="4" />
+                                            </Box>
+                                            <Link inputowner="1" indexofinput="2" outputowner="0" indexofoutput="1" />
+                                        </Diagram>
+                                    </BehaviorKeyframe>
+                                </BehaviorLayer>
+                                <ActuatorList model="Nao">
+                                    <ActuatorCurve name="value" actuator="HeadYaw" recordable="1" mute="0" unit="-1">
+                                        <Key frame="20" value="-7.73688" />
+                                        <Key frame="39" value="-20.1296" />
+                                        <Key frame="56" value="-23.8211" />
+                                        <Key frame="70" value="-23.9968" />
+                                        <Key frame="87" value="-29.7977" />
+                                        <Key frame="115" value="-21.5359" />
+                                    </ActuatorCurve>
+                                    <ActuatorCurve name="value" actuator="HeadPitch" recordable="1" mute="0" unit="-1">
+                                        <Key frame="20" value="16.9607" />
+                                        <Key frame="39" value="-9.75839" />
+                                        <Key frame="56" value="-19.5144" />
+                                        <Key frame="70" value="-3.43018" />
+                                        <Key frame="87" value="-11.0768" />
+                                        <Key frame="115" value="-0.617646" />
+                                    </ActuatorCurve>
+                                    <ActuatorCurve name="value" actuator="LShoulderPitch" recordable="1" mute="0" unit="-1">
+                                        <Key frame="18" value="64.0707" />
+                                        <Key frame="37" value="53.1721" />
+                                        <Key frame="54" value="53.8752" />
+                                        <Key frame="68" value="49.3927" />
+                                        <Key frame="85" value="51.4143" />
+                                        <Key frame="113" value="48.2502" />
+                                    </ActuatorCurve>
+                                    <ActuatorCurve name="value" actuator="LShoulderRoll" recordable="1" mute="0" unit="-1">
+                                        <Key frame="18" value="20.8279" />
+                                        <Key frame="37" value="13.0056" />
+                                        <Key frame="54" value="11.6872" />
+                                        <Key frame="68" value="12.4782" />
+                                        <Key frame="85" value="14.2361" />
+                                        <Key frame="113" value="13.0056" />
+                                    </ActuatorCurve>
+                                    <ActuatorCurve name="value" actuator="LElbowYaw" recordable="1" mute="0" unit="-1">
+                                        <Key frame="18" value="-46.0577" />
+                                        <Key frame="37" value="-39.6416" />
+                                        <Key frame="54" value="-38.9384" />
+                                        <Key frame="68" value="-34.9833" />
+                                        <Key frame="85" value="-43.1572" />
+                                        <Key frame="113" value="-38.4111" />
+                                    </ActuatorCurve>
+                                    <ActuatorCurve name="value" actuator="LElbowRoll" recordable="1" mute="0" unit="-1">
+                                        <Key frame="18" value="-79.0123" />
+                                        <Key frame="37" value="-73.9145" />
+                                        <Key frame="54" value="-67.7621" />
+                                        <Key frame="68" value="-71.5415" />
+                                        <Key frame="85" value="-75.5845" />
+                                        <Key frame="113" value="-67.85" />
+                                    </ActuatorCurve>
+                                    <ActuatorCurve name="value" actuator="LWristYaw" recordable="1" mute="0" unit="-1">
+                                        <Key frame="37" value="8.4352" />
+                                        <Key frame="113" value="6.85315" />
+                                    </ActuatorCurve>
+                                    <ActuatorCurve name="value" actuator="LHand" recordable="1" mute="0" unit="-1">
+                                        <Key frame="37" value="0.238207" />
+                                        <Key frame="113" value="0.240025" />
+                                    </ActuatorCurve>
+                                    <ActuatorCurve name="value" actuator="RShoulderPitch" recordable="1" mute="0" unit="-1">
+                                        <Key frame="16" value="14.153" />
+                                        <Key frame="35" value="-67.1469" />
+                                        <Key frame="52" value="-62.4007" />
+                                        <Key frame="66" value="-72.2446" />
+                                        <Key frame="83" value="-65.8285" />
+                                        <Key frame="111" value="58.4504" />
+                                    </ActuatorCurve>
+                                    <ActuatorCurve name="value" actuator="RShoulderRoll" recordable="1" mute="0" unit="-1">
+                                        <Key frame="16" value="-13.8893" />
+                                        <Key frame="35" value="-54.6711" />
+                                        <Key frame="52" value="-26.3699" />
+                                        <Key frame="66" value="-55.0226" />
+                                        <Key frame="83" value="-18.8112" />
+                                        <Key frame="111" value="-14.3288" />
+                                    </ActuatorCurve>
+                                    <ActuatorCurve name="value" actuator="RElbowYaw" recordable="1" mute="0" unit="-1">
+                                        <Key frame="16" value="-17.9323" />
+                                        <Key frame="35" value="32.3418" />
+                                        <Key frame="52" value="22.41" />
+                                        <Key frame="66" value="19.949" />
+                                        <Key frame="83" value="21.8826" />
+                                        <Key frame="93" value="56" />
+                                        <Key frame="111" value="47.3712" />
+                                    </ActuatorCurve>
+                                    <ActuatorCurve name="value" actuator="RElbowRoll" recordable="1" mute="0" unit="-1">
+                                        <Key frame="16" value="79.3686" />
+                                        <Key frame="35" value="13.8893" />
+                                        <Key frame="42" value="20" />
+                                        <Key frame="52" value="53.5285" />
+                                        <Key frame="60" value="39" />
+                                        <Key frame="66" value="11" />
+                                        <Key frame="76" value="15" />
+                                        <Key frame="83" value="40.5205" />
+                                        <Key frame="93" value="58.4" />
+                                        <Key frame="111" value="72.5131" />
+                                    </ActuatorCurve>
+                                    <ActuatorCurve name="value" actuator="RWristYaw" recordable="1" mute="0" unit="-1">
+                                        <Key frame="35" value="-17.9323" />
+                                        <Key frame="83" value="-17.405" />
+                                        <Key frame="111" value="10.4567" />
+                                    </ActuatorCurve>
+                                    <ActuatorCurve name="value" actuator="RHand" recordable="1" mute="0" unit="-1">
+                                        <Key frame="35" value="0.853478" />
+                                        <Key frame="83" value="0.854933" />
+                                        <Key frame="111" value="0.425116" />
+                                    </ActuatorCurve>
+                                </ActuatorList>
+                            </Timeline>
+                            <Resource name="Head" type="Lock" timeout="0" />
+                            <Resource name="Arms" type="Lock" timeout="0" />
+                            <Resource name="Left eye leds" type="Lock" timeout="0" />
+                            <Resource name="Right eye leds" type="Lock" timeout="0" />
+                        </Box>
+                        <Box name="If" id="2" localization="8" tooltip="Test a condition and stimulate the then or else outputs depending on the boolean&#x0A;value of the condition.&#x0A;The condition can be set in parameters." x="338" y="365">
+                            <bitmap>media/images/box/box-diagram.png</bitmap>
+                            <script language="4">
+                                <content>
+                                    <![CDATA[class MyClass(GeneratedClass):
+    def __init__(self):
+        GeneratedClass.__init__(self, False)
+
+    def onLoad(self):
+        #~ puts code for box initialization here
+        pass
+
+    def onUnload(self):
+        #~ puts code for box cleanup here
+        pass
+
+    def onInput_onData(self, p):
+        param = self.getParameter("Value to compare")
+        try:
+            p = float(p)
+            param = float(param)
+        except:
+            p = str(p)
+            param = str(param)
+        operator = self.getParameter("Condition operator")
+        if( operator == "<" ):
+            self.outputTrueOrFalse( p < param )
+        elif( operator == "< or =" ):
+            self.outputTrueOrFalse( p <= param )
+        elif( operator == "=" ):
+            self.outputTrueOrFalse( p == param )
+        elif( operator == "> or =" ):
+            self.outputTrueOrFalse( p >= param )
+        elif( operator == ">" ):
+            self.outputTrueOrFalse( p > param )
+        elif( operator == "≠" ):
+            self.outputTrueOrFalse( p != param )
+        else:
+            raise Exception( "Operator not known: " + str(operator) )
+
+    def outputTrueOrFalse(self, condition):
+        if( condition ):
+            self.output_then()
+        else:
+            self.output_else()]]>
+</content>
+                            </script>
+                            <Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when diagram is loaded." id="1" />
+                            <Input name="onData" type="0" type_size="1" nature="1" inner="0" tooltip="The data to test." id="2" />
+                            <Output name="output_then" type="1" type_size="1" nature="2" inner="0" tooltip="Signal sent if the condition is true." id="3" />
+                            <Output name="output_else" type="1" type_size="1" nature="2" inner="0" tooltip="Signal sent if the condition is false." id="4" />
+                            <Parameter name="Condition operator" inherits_from_parent="0" content_type="3" value="=" default_value="≠" custom_choice="0" tooltip='Choose the condition operator.&#x0A;&#x0A;For example:&#x0A;If you choose &quot;&gt; or =&quot;, the condition will be: is the input is higher or equal&#x0A;than the parameter?' id="5">
+                                <Choice value="&lt;" />
+                                <Choice value="&lt; or =" />
+                                <Choice value="=" />
+                                <Choice value="&gt; or =" />
+                                <Choice value="&gt;" />
+                                <Choice value="≠" />
+                            </Parameter>
+                            <Parameter name="Value to compare" inherits_from_parent="0" content_type="3" value="-1" default_value="0" custom_choice="0" tooltip="This is the value which is compared to the input value." id="6" />
+                        </Box>
+                        <Box name="RandomWelcome" id="3" localization="8" tooltip="Say some text. Note that you must open the box to enter the text." x="551" y="363">
+                            <bitmap>media/images/box/interaction/say.png</bitmap>
+                            <script language="4">
+                                <content>
+                                    <![CDATA[class MyClass(GeneratedClass):
+    def __init__(self):
+        GeneratedClass.__init__(self, False)
+
+    def onLoad(self):
+        self.bIsRunning = False
+
+    def onUnload(self):
+        self.bIsRunning = False
+
+    def onInput_onStart(self):
+        self.bIsRunning = True
+
+    def onInput_onStop(self):
+        if( self.bIsRunning ):
+            self.onUnload()
+            self.onStopped()]]>
+</content>
+                            </script>
+                            <Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when Diagram is loaded." id="1" />
+                            <Input name="onStart" type="1" type_size="1" nature="2" inner="0" tooltip="Box behavior starts when a signal is received on this Input." id="2" />
+                            <Input name="onStop" type="1" type_size="1" nature="3" inner="0" tooltip="Box behavior stops when a signal is received on this Input." id="3" />
+                            <Output name="onStopped" type="1" type_size="1" nature="1" inner="0" tooltip="Signal sent when box behavior is finished or stopped." id="4" />
+                            <Parameter name="Voice shaping (%)" inherits_from_parent="0" content_type="1" value="111" default_value="100" min="50" max="150" tooltip='Used to modify at runtime the voice feature (tone, speed). In a slighty&#x0A;different way than pitch and speed, it gives a kind of &quot;gender or age&#x0A;modification&quot; effect.&#x0A;&#x0A;For instance, a quite good male derivation of female voice can be&#x0A;obtained setting this parameter to 78%.&#x0A;&#x0A;Note: For a better effect, you can compensate this parameter with the&#x0A;speed parameter. For example, if you want to decrease by 20% the voice&#x0A;shaping, you will have to increase by 20% the speed to keep a constant&#x0A;average speed.&#x0A;&#x0A;!Warning! This feature is not available yet in Japanese, Chinese and Korean.' id="5" />
+                            <Parameter name="Speed (%)" inherits_from_parent="0" content_type="1" value="91" default_value="100" min="50" max="200" tooltip="Changes the speed of the voice.&#x0A;&#x0A;Note: For a better effect, you can compensate this parameter with the voice&#x0A;shaping parameter. For example, if you want to increase by 20% the speed, you&#x0A;will have to decrease by 20% the voice shaping to keep a constant average&#x0A;speed.&#x0A;&#x0A;!Warning! This feature is not available yet in Japanese, Chinese and Korean." id="6" />
+                            <Timeline enable="0">
+                                <BehaviorLayer name="behavior_layer1">
+                                    <BehaviorKeyframe name="keyframe1" index="1">
+                                        <Diagram>
+                                            <Box name="Say Text" id="2" localization="8" tooltip="Say the text received on its input." x="807" y="167">
+                                                <bitmap>media/images/box/interaction/say.png</bitmap>
+                                                <script language="4">
+                                                    <content>
+                                                        <![CDATA[import time
+
+class MyClass(GeneratedClass):
+    def __init__(self):
+        GeneratedClass.__init__(self, False)
+        self.tts = ALProxy('ALTextToSpeech')
+        self.ttsStop = ALProxy('ALTextToSpeech', True) #Create another proxy as wait is blocking if audioout is remote
+
+    def onLoad(self):
+        self.bIsRunning = False
+        self.ids = []
+
+    def onUnload(self):
+        for id in self.ids:
+            try:
+                self.ttsStop.stop(id)
+            except:
+                pass
+        while( self.bIsRunning ):
+            time.sleep( 0.2 )
+
+    def onInput_onStart(self, p):
+        self.bIsRunning = True
+        try:
+            sentence = "\RSPD="+ str( self.getParameter("Speed (%)") ) + "\ "
+            sentence += "\VCT="+ str( self.getParameter("Voice shaping (%)") ) + "\ "
+            sentence += str(p)
+            sentence +=  "\RST\ "
+            id = self.tts.post.say(str(sentence))
+            self.ids.append(id)
+            self.tts.wait(id, 0)
+        finally:
+            try:
+                self.ids.remove(id)
+            except:
+                pass
+            if( self.ids == [] ):
+                self.onStopped() # activate output of the box
+                self.bIsRunning = False
+
+    def onInput_onStop(self):
+        self.onUnload()]]>
+</content>
+                                                </script>
+                                                <Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when Diagram is loaded." id="1" />
+                                                <Input name="onStart" type="3" type_size="1" nature="2" inner="0" tooltip="Box behavior starts when a signal is received on this Input." id="2" />
+                                                <Input name="onStop" type="1" type_size="1" nature="3" inner="0" tooltip="Box behavior stops when a signal is received on this Input." id="3" />
+                                                <Output name="onStopped" type="1" type_size="1" nature="1" inner="0" tooltip="Signal sent when Box behavior is finished." id="4" />
+                                                <Parameter name="Voice shaping (%)" inherits_from_parent="1" content_type="1" value="100" default_value="100" min="50" max="150" tooltip='Used to modify at runtime the voice feature (tone, speed). In a slighty&#x0A;different way than pitch and speed, it gives a kind of &quot;gender or age&#x0A;modification&quot; effect.&#x0A;&#x0A;For instance, a quite good male derivation of female voice can be&#x0A;obtained setting this parameter to 78%.&#x0A;&#x0A;Note: For a better effect, you can compensate this parameter with the&#x0A;speed parameter. For example, if you want to decrease by 20% the voice&#x0A;shaping, you will have to increase by 20% the speed to keep a constant&#x0A;average speed.' id="5" />
+                                                <Parameter name="Speed (%)" inherits_from_parent="1" content_type="1" value="100" default_value="100" min="50" max="200" tooltip="Changes the speed of the voice.&#x0A;&#x0A;Note: For a better effect, you can compensate this parameter with the voice&#x0A;shaping parameter. For example, if you want to increase by 20% the speed, you&#x0A;will have to decrease by 20% the voice shaping to keep a constant average&#x0A;speed." id="6" />
+                                            </Box>
+                                            <Box name="Localized Text" id="5" localization="8" tooltip="Send on the output the text associated with the robot&apos;s current voice language.&#x0A;You can display and edit the text associated with any language by&#x0A;selecting the language in the combobox.&#x0A;&#x0A;!!Warning!! The text sent on the output is NOT the displayed one but the one&#x0A;associated with the robot&apos;s current voice language." plugin="localizationbox_plugin" x="451" y="36">
+                                                <bitmap>media/images/box/interaction/vocabulary.png</bitmap>
+                                                <script language="4">
+                                                    <content>
+                                                        <![CDATA[# /!\ Generated content. Do not edit!
+class MyClass(GeneratedClass):
+	def __init__(self):
+		try: # disable autoBind
+			GeneratedClass.__init__(self, False)
+		except TypeError: # if NAOqi < 1.14
+			GeneratedClass.__init__( self )
+
+		self.tts = ALProxy("ALTextToSpeech")
+		self.sentences = {
+			"Arabic" : "  ",
+			"Czech" : " Ahoj ",
+			"Danish" : " Hej ",
+			"German" : " Hallo ",
+			"Greek" : "  ",
+			"English" : " Welcome to the Dutch Technology Week ",
+			"Spanish" : " Hola ",
+			"Finnish" : " Hei ",
+			"French" : " Bonjour ",
+			"Italian" : " Ciao ",
+			"Japanese" : " こんにちは ",
+			"Korean" : " 안녕하세요 ",
+			"Dutch" : " Hallo, welkom op de opening van de Dutch Technology Week. ",
+			"Norwegian" : "  ",
+			"Polish" : " Cześć ",
+			"Brazilian" : " Olá ",
+			"Portuguese" : " Olá ",
+			"Russian" : " Привет ",
+			"Swedish" : " Hallå ",
+			"Turkish" : " Merhaba ",
+			"Chinese" : "  "
+		}
+
+	def onInput_onStart(self):
+		sDefaultLang = self.tts.getLanguage()
+		self.onStopped(self.sentences[sDefaultLang])]]>
+</content>
+                                                </script>
+                                                <pluginContent>
+                                                    <arabic>
+                                                        <![CDATA[]]>
+</arabic>
+                                                    <czech>
+                                                        <![CDATA[Ahoj]]>
+</czech>
+                                                    <danish>
+                                                        <![CDATA[Hej]]>
+</danish>
+                                                    <german>
+                                                        <![CDATA[Hallo]]>
+</german>
+                                                    <greek>
+                                                        <![CDATA[]]>
+</greek>
+                                                    <english>
+                                                        <![CDATA[Welcome to the Dutch Technology Week]]>
+</english>
+                                                    <spanish>
+                                                        <![CDATA[Hola]]>
+</spanish>
+                                                    <finnish>
+                                                        <![CDATA[Hei]]>
+</finnish>
+                                                    <french>
+                                                        <![CDATA[Bonjour]]>
+</french>
+                                                    <italian>
+                                                        <![CDATA[Ciao]]>
+</italian>
+                                                    <japanese>
+                                                        <![CDATA[こんにちは]]>
+</japanese>
+                                                    <korean>
+                                                        <![CDATA[안녕하세요]]>
+</korean>
+                                                    <dutch>
+                                                        <![CDATA[Hallo, welkom op de opening van de Dutch Technology Week.]]>
+</dutch>
+                                                    <norwegian>
+                                                        <![CDATA[]]>
+</norwegian>
+                                                    <polish>
+                                                        <![CDATA[Cześć]]>
+</polish>
+                                                    <brazilian>
+                                                        <![CDATA[Olá]]>
+</brazilian>
+                                                    <portuguese>
+                                                        <![CDATA[Olá]]>
+</portuguese>
+                                                    <russian>
+                                                        <![CDATA[Привет]]>
+</russian>
+                                                    <swedish>
+                                                        <![CDATA[Hallå]]>
+</swedish>
+                                                    <turkish>
+                                                        <![CDATA[Merhaba]]>
+</turkish>
+                                                    <chinese>
+                                                        <![CDATA[]]>
+</chinese>
+                                                    <language>12</language>
+                                                </pluginContent>
+                                                <Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when diagram is loaded." id="1" />
+                                                <Input name="onStart" type="1" type_size="1" nature="2" inner="0" tooltip="Data is sent on the output when this input is stimulated." id="2" />
+                                                <Output name="onStopped" type="3" type_size="1" nature="1" inner="0" tooltip="Data sent when asked." id="3" />
+                                            </Box>
+                                            <Box name="Random Int." id="1" localization="8" tooltip="Generate a random integer between a min number and a max number set as&#x0A;parameters.&#x0A;Note that the min and max numbers are included in the range of possible values." x="74" y="207">
+                                                <bitmap>media/images/box/box-script.png</bitmap>
+                                                <script language="4">
+                                                    <content>
+                                                        <![CDATA[import random
+
+class MyClass(GeneratedClass):
+    def __init__(self):
+        GeneratedClass.__init__(self, False)
+
+    def onLoad(self):
+        # attributes needed in shuffle mode
+        self.nMax = 1
+        self.nMin = 0
+        self.nIndex = self.nMax - self.nMin
+        self.aShuffled = []
+
+    def onUnload(self):
+         #puts code for box cleanup here
+        pass
+
+    def onInput_onStart(self):
+        nMax = self.getParameter("Max value")
+        nMin = self.getParameter("Min value")
+        if( nMin > nMax ):
+            temp = nMin
+            nMin = nMax
+            nMax = temp
+        # if shuffle
+        if( self.getParameter("Shuffle") ):
+            self.nIndex += 1
+            if( self.nIndex > self.nMax - self.nMin or nMax != self.nMax or nMin != self.nMin ):
+                self.nMax = nMax
+                self.nMin = nMin
+                self.nIndex = 0
+                self.aShuffled = []
+                for i in range( nMin, nMax + 1 ):
+                    self.aShuffled.insert( random.randint(0, len(self.aShuffled)), i )
+            self.output_RandomValue( self.aShuffled[self.nIndex] )
+        # if not shuffle
+        else:
+            self.nIndex = self.nMax - self.nMin
+            self.output_RandomValue( random.randint( nMin, nMax ) )]]>
+</content>
+                                                </script>
+                                                <Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when diagram is loaded." id="1" />
+                                                <Input name="onStart" type="1" type_size="1" nature="1" inner="0" tooltip="Generate a random integer." id="2" />
+                                                <Output name="output_RandomValue" type="2" type_size="1" nature="2" inner="0" tooltip="The random value obtained." id="3" />
+                                                <Parameter name="Min value" inherits_from_parent="0" content_type="1" value="0" default_value="0" min="0" max="1000" tooltip="The minimum value you can get." id="4" />
+                                                <Parameter name="Max value" inherits_from_parent="0" content_type="1" value="6" default_value="10" min="0" max="1000" tooltip="The maximum number you can get." id="5" />
+                                                <Parameter name="Shuffle" inherits_from_parent="0" content_type="0" value="0" default_value="0" tooltip="When this option is selected the box will give all the numbers between min and&#x0A;max before giving the same number twice." id="6" />
+                                            </Box>
+                                            <Box name="Switch Case" id="3" localization="8" tooltip="Test input value and stimulate the output matching to this value. If there is no&#x0A;matching output, the default output (onDefault) is stimulated.&#x0A;&#x0A;You can edit a case by left double-clicking on the line. You can add a&#x0A;case by right clicking on a line and selecting &apos;Insert a row&apos;. You can delete&#x0A;a case by right clicking on a line and selecting &apos;Remove a row&apos;." plugin="dispatcher_plugin" x="209" y="227">
+                                                <bitmap>media/images/box/interaction/choice.png</bitmap>
+                                                <script language="4">
+                                                    <content>
+                                                        <![CDATA[# /!\ Generated content. Do not edit!
+class MyClass(GeneratedClass):
+	def __init__(self):
+		try: # disable autoBind
+		  GeneratedClass.__init__(self, False)
+		except TypeError: # if NAOqi < 1.14
+		  GeneratedClass.__init__( self )
+
+	def onInput_onStart(self, p):
+		p = self.typeConversion(p)
+		if(p == self.typeConversion(0)):
+			self.output_1(p)
+		elif(p == self.typeConversion(1)):
+			self.output_2(p)
+		elif(p == self.typeConversion(2)):
+			self.output_3(p)
+		elif(p == self.typeConversion(3)):
+			self.output_4(p)
+		elif(p == self.typeConversion(4)):
+			self.output_5(p)
+		elif(p == self.typeConversion(5)):
+			self.output_6(p)
+		elif(p == self.typeConversion(6)):
+			self.output_7(p)
+		elif(p == self.typeConversion(7)):
+			self.output_8(p)
+		elif(p == self.typeConversion(8)):
+			self.output_9(p)
+		else:
+			self.onDefault()
+
+	def typeConversion(self, p):
+		try:
+			p = float(p)
+			pint = int(p)
+			if( p == pint ):
+				p = pint
+		except:
+			p = str(p)
+		return p]]>
+</content>
+                                                </script>
+                                                <pluginContent>
+                                                    <keywords>
+                                                        <keyword>0</keyword>
+                                                        <keyword>1</keyword>
+                                                        <keyword>2</keyword>
+                                                        <keyword>3</keyword>
+                                                        <keyword>4</keyword>
+                                                        <keyword>5</keyword>
+                                                        <keyword>6</keyword>
+                                                        <keyword>7</keyword>
+                                                        <keyword>8</keyword>
+                                                        <keyword></keyword>
+                                                    </keywords>
+                                                </pluginContent>
+                                                <Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when diagram is loaded." id="1" />
+                                                <Input name="onStart" type="0" type_size="1" nature="1" inner="0" tooltip="Value to test." id="2" />
+                                                <Output name="onDefault" type="1" type_size="1" nature="2" inner="0" tooltip="If the input value does not match any value set on the box." id="3" />
+                                                <Output name="output_1" type="0" type_size="1" nature="2" inner="0" tooltip="This IO has been automatically added by box. Read box tooltip for more information." id="4" />
+                                                <Output name="output_2" type="0" type_size="1" nature="2" inner="0" tooltip="This IO has been automatically added by box. Read box tooltip for more information." id="5" />
+                                                <Output name="output_3" type="0" type_size="1" nature="2" inner="0" tooltip="This IO has been automatically added by box. Read box tooltip for more information." id="6" />
+                                                <Output name="output_4" type="0" type_size="1" nature="2" inner="0" tooltip="This IO has been automatically added by box. Read box tooltip for more information." id="7" />
+                                                <Output name="output_5" type="0" type_size="1" nature="2" inner="0" tooltip="This IO has been automatically added by box. Read box tooltip for more information." id="8" />
+                                                <Output name="output_6" type="0" type_size="1" nature="2" inner="0" tooltip="This IO has been automatically added by box. Read box tooltip for more information." id="9" />
+                                                <Output name="output_7" type="0" type_size="1" nature="2" inner="0" tooltip="This IO has been automatically added by box. Read box tooltip for more information." id="10" />
+                                                <Output name="output_8" type="0" type_size="1" nature="2" inner="0" tooltip="This IO has been automatically added by box. Read box tooltip for more information." id="11" />
+                                                <Output name="output_9" type="0" type_size="1" nature="2" inner="0" tooltip="This IO has been automatically added by box. Read box tooltip for more information." id="12" />
+                                            </Box>
+                                            <Box name="Localized Text (1)" id="4" localization="8" tooltip="Send on the output the text associated with the robot&apos;s current voice language.&#x0A;You can display and edit the text associated with any language by&#x0A;selecting the language in the combobox.&#x0A;&#x0A;!!Warning!! The text sent on the output is NOT the displayed one but the one&#x0A;associated with the robot&apos;s current voice language." plugin="localizationbox_plugin" x="448" y="169">
+                                                <bitmap>media/images/box/interaction/vocabulary.png</bitmap>
+                                                <script language="4">
+                                                    <content>
+                                                        <![CDATA[# /!\ Generated content. Do not edit!
+class MyClass(GeneratedClass):
+	def __init__(self):
+		try: # disable autoBind
+			GeneratedClass.__init__(self, False)
+		except TypeError: # if NAOqi < 1.14
+			GeneratedClass.__init__( self )
+
+		self.tts = ALProxy("ALTextToSpeech")
+		self.sentences = {
+			"Arabic" : "  ",
+			"Czech" : " Ahoj ",
+			"Danish" : " Hej ",
+			"German" : " Hallo ",
+			"Greek" : "  ",
+			"English" : " Hello there, looking fine as hell today. ",
+			"Spanish" : " Hola ",
+			"Finnish" : " Hei ",
+			"French" : " Bonjour ",
+			"Italian" : " Ciao ",
+			"Japanese" : " こんにちは ",
+			"Korean" : " 안녕하세요 ",
+			"Dutch" : " Goedemorgen, fijne dag toegewenst. ",
+			"Norwegian" : "  ",
+			"Polish" : " Cześć ",
+			"Brazilian" : " Olá ",
+			"Portuguese" : " Olá ",
+			"Russian" : " Привет ",
+			"Swedish" : " Hallå ",
+			"Turkish" : " Merhaba ",
+			"Chinese" : "  "
+		}
+
+	def onInput_onStart(self):
+		sDefaultLang = self.tts.getLanguage()
+		self.onStopped(self.sentences[sDefaultLang])]]>
+</content>
+                                                </script>
+                                                <pluginContent>
+                                                    <arabic>
+                                                        <![CDATA[]]>
+</arabic>
+                                                    <czech>
+                                                        <![CDATA[Ahoj]]>
+</czech>
+                                                    <danish>
+                                                        <![CDATA[Hej]]>
+</danish>
+                                                    <german>
+                                                        <![CDATA[Hallo]]>
+</german>
+                                                    <greek>
+                                                        <![CDATA[]]>
+</greek>
+                                                    <english>
+                                                        <![CDATA[Hello there, looking fine as hell today.]]>
+</english>
+                                                    <spanish>
+                                                        <![CDATA[Hola]]>
+</spanish>
+                                                    <finnish>
+                                                        <![CDATA[Hei]]>
+</finnish>
+                                                    <french>
+                                                        <![CDATA[Bonjour]]>
+</french>
+                                                    <italian>
+                                                        <![CDATA[Ciao]]>
+</italian>
+                                                    <japanese>
+                                                        <![CDATA[こんにちは]]>
+</japanese>
+                                                    <korean>
+                                                        <![CDATA[안녕하세요]]>
+</korean>
+                                                    <dutch>
+                                                        <![CDATA[Goedemorgen, fijne dag toegewenst.]]>
+</dutch>
+                                                    <norwegian>
+                                                        <![CDATA[]]>
+</norwegian>
+                                                    <polish>
+                                                        <![CDATA[Cześć]]>
+</polish>
+                                                    <brazilian>
+                                                        <![CDATA[Olá]]>
+</brazilian>
+                                                    <portuguese>
+                                                        <![CDATA[Olá]]>
+</portuguese>
+                                                    <russian>
+                                                        <![CDATA[Привет]]>
+</russian>
+                                                    <swedish>
+                                                        <![CDATA[Hallå]]>
+</swedish>
+                                                    <turkish>
+                                                        <![CDATA[Merhaba]]>
+</turkish>
+                                                    <chinese>
+                                                        <![CDATA[]]>
+</chinese>
+                                                    <language>12</language>
+                                                </pluginContent>
+                                                <Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when diagram is loaded." id="1" />
+                                                <Input name="onStart" type="1" type_size="1" nature="2" inner="0" tooltip="Data is sent on the output when this input is stimulated." id="2" />
+                                                <Output name="onStopped" type="3" type_size="1" nature="1" inner="0" tooltip="Data sent when asked." id="3" />
+                                            </Box>
+                                            <Box name="Localized Text (2)" id="6" localization="8" tooltip="Send on the output the text associated with the robot&apos;s current voice language.&#x0A;You can display and edit the text associated with any language by&#x0A;selecting the language in the combobox.&#x0A;&#x0A;!!Warning!! The text sent on the output is NOT the displayed one but the one&#x0A;associated with the robot&apos;s current voice language." plugin="localizationbox_plugin" x="456" y="319">
+                                                <bitmap>media/images/box/interaction/vocabulary.png</bitmap>
+                                                <script language="4">
+                                                    <content>
+                                                        <![CDATA[# /!\ Generated content. Do not edit!
+class MyClass(GeneratedClass):
+	def __init__(self):
+		try: # disable autoBind
+			GeneratedClass.__init__(self, False)
+		except TypeError: # if NAOqi < 1.14
+			GeneratedClass.__init__( self )
+
+		self.tts = ALProxy("ALTextToSpeech")
+		self.sentences = {
+			"Arabic" : "  ",
+			"Czech" : " Ahoj ",
+			"Danish" : " Hej ",
+			"German" : " Hallo ",
+			"Greek" : "  ",
+			"English" : " Have fun today at the Dutch Technology Week. ",
+			"Spanish" : " Hola ",
+			"Finnish" : " Hei ",
+			"French" : " Bonjour ",
+			"Italian" : " Ciao ",
+			"Japanese" : " こんにちは ",
+			"Korean" : " 안녕하세요 ",
+			"Dutch" : " Welkom, geniet van uw ontbijt hier in het parktheater. ",
+			"Norwegian" : "  ",
+			"Polish" : " Cześć ",
+			"Brazilian" : " Olá ",
+			"Portuguese" : " Olá ",
+			"Russian" : " Привет ",
+			"Swedish" : " Hallå ",
+			"Turkish" : " Merhaba ",
+			"Chinese" : "  "
+		}
+
+	def onInput_onStart(self):
+		sDefaultLang = self.tts.getLanguage()
+		self.onStopped(self.sentences[sDefaultLang])]]>
+</content>
+                                                </script>
+                                                <pluginContent>
+                                                    <arabic>
+                                                        <![CDATA[]]>
+</arabic>
+                                                    <czech>
+                                                        <![CDATA[Ahoj]]>
+</czech>
+                                                    <danish>
+                                                        <![CDATA[Hej]]>
+</danish>
+                                                    <german>
+                                                        <![CDATA[Hallo]]>
+</german>
+                                                    <greek>
+                                                        <![CDATA[]]>
+</greek>
+                                                    <english>
+                                                        <![CDATA[Have fun today at the Dutch Technology Week.]]>
+</english>
+                                                    <spanish>
+                                                        <![CDATA[Hola]]>
+</spanish>
+                                                    <finnish>
+                                                        <![CDATA[Hei]]>
+</finnish>
+                                                    <french>
+                                                        <![CDATA[Bonjour]]>
+</french>
+                                                    <italian>
+                                                        <![CDATA[Ciao]]>
+</italian>
+                                                    <japanese>
+                                                        <![CDATA[こんにちは]]>
+</japanese>
+                                                    <korean>
+                                                        <![CDATA[안녕하세요]]>
+</korean>
+                                                    <dutch>
+                                                        <![CDATA[Welkom, geniet van uw ontbijt hier in het parktheater.]]>
+</dutch>
+                                                    <norwegian>
+                                                        <![CDATA[]]>
+</norwegian>
+                                                    <polish>
+                                                        <![CDATA[Cześć]]>
+</polish>
+                                                    <brazilian>
+                                                        <![CDATA[Olá]]>
+</brazilian>
+                                                    <portuguese>
+                                                        <![CDATA[Olá]]>
+</portuguese>
+                                                    <russian>
+                                                        <![CDATA[Привет]]>
+</russian>
+                                                    <swedish>
+                                                        <![CDATA[Hallå]]>
+</swedish>
+                                                    <turkish>
+                                                        <![CDATA[Merhaba]]>
+</turkish>
+                                                    <chinese>
+                                                        <![CDATA[]]>
+</chinese>
+                                                    <language>12</language>
+                                                </pluginContent>
+                                                <Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when diagram is loaded." id="1" />
+                                                <Input name="onStart" type="1" type_size="1" nature="2" inner="0" tooltip="Data is sent on the output when this input is stimulated." id="2" />
+                                                <Output name="onStopped" type="3" type_size="1" nature="1" inner="0" tooltip="Data sent when asked." id="3" />
+                                            </Box>
+                                            <Box name="Localized Text (3)" id="7" localization="8" tooltip="Send on the output the text associated with the robot&apos;s current voice language.&#x0A;You can display and edit the text associated with any language by&#x0A;selecting the language in the combobox.&#x0A;&#x0A;!!Warning!! The text sent on the output is NOT the displayed one but the one&#x0A;associated with the robot&apos;s current voice language." plugin="localizationbox_plugin" x="485" y="461">
+                                                <bitmap>media/images/box/interaction/vocabulary.png</bitmap>
+                                                <script language="4">
+                                                    <content>
+                                                        <![CDATA[# /!\ Generated content. Do not edit!
+class MyClass(GeneratedClass):
+	def __init__(self):
+		try: # disable autoBind
+			GeneratedClass.__init__(self, False)
+		except TypeError: # if NAOqi < 1.14
+			GeneratedClass.__init__( self )
+
+		self.tts = ALProxy("ALTextToSpeech")
+		self.sentences = {
+			"Arabic" : "  ",
+			"Czech" : " Ahoj ",
+			"Danish" : " Hej ",
+			"German" : " Hallo ",
+			"Greek" : "  ",
+			"English" : " Have fun today at the Dutch Technology Week. ",
+			"Spanish" : " Hola ",
+			"Finnish" : " Hei ",
+			"French" : " Bonjour ",
+			"Italian" : " Ciao ",
+			"Japanese" : " こんにちは ",
+			"Korean" : " 안녕하세요 ",
+			"Dutch" : " Ahhh, daar ben je. Ik was benieuwd of je zou komen! ",
+			"Norwegian" : "  ",
+			"Polish" : " Cześć ",
+			"Brazilian" : " Olá ",
+			"Portuguese" : " Olá ",
+			"Russian" : " Привет ",
+			"Swedish" : " Hallå ",
+			"Turkish" : " Merhaba ",
+			"Chinese" : "  "
+		}
+
+	def onInput_onStart(self):
+		sDefaultLang = self.tts.getLanguage()
+		self.onStopped(self.sentences[sDefaultLang])]]>
+</content>
+                                                </script>
+                                                <pluginContent>
+                                                    <arabic>
+                                                        <![CDATA[]]>
+</arabic>
+                                                    <czech>
+                                                        <![CDATA[Ahoj]]>
+</czech>
+                                                    <danish>
+                                                        <![CDATA[Hej]]>
+</danish>
+                                                    <german>
+                                                        <![CDATA[Hallo]]>
+</german>
+                                                    <greek>
+                                                        <![CDATA[]]>
+</greek>
+                                                    <english>
+                                                        <![CDATA[Have fun today at the Dutch Technology Week.]]>
+</english>
+                                                    <spanish>
+                                                        <![CDATA[Hola]]>
+</spanish>
+                                                    <finnish>
+                                                        <![CDATA[Hei]]>
+</finnish>
+                                                    <french>
+                                                        <![CDATA[Bonjour]]>
+</french>
+                                                    <italian>
+                                                        <![CDATA[Ciao]]>
+</italian>
+                                                    <japanese>
+                                                        <![CDATA[こんにちは]]>
+</japanese>
+                                                    <korean>
+                                                        <![CDATA[안녕하세요]]>
+</korean>
+                                                    <dutch>
+                                                        <![CDATA[Ahhh, daar ben je. Ik was benieuwd of je zou komen!]]>
+</dutch>
+                                                    <norwegian>
+                                                        <![CDATA[]]>
+</norwegian>
+                                                    <polish>
+                                                        <![CDATA[Cześć]]>
+</polish>
+                                                    <brazilian>
+                                                        <![CDATA[Olá]]>
+</brazilian>
+                                                    <portuguese>
+                                                        <![CDATA[Olá]]>
+</portuguese>
+                                                    <russian>
+                                                        <![CDATA[Привет]]>
+</russian>
+                                                    <swedish>
+                                                        <![CDATA[Hallå]]>
+</swedish>
+                                                    <turkish>
+                                                        <![CDATA[Merhaba]]>
+</turkish>
+                                                    <chinese>
+                                                        <![CDATA[]]>
+</chinese>
+                                                    <language>12</language>
+                                                </pluginContent>
+                                                <Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when diagram is loaded." id="1" />
+                                                <Input name="onStart" type="1" type_size="1" nature="2" inner="0" tooltip="Data is sent on the output when this input is stimulated." id="2" />
+                                                <Output name="onStopped" type="3" type_size="1" nature="1" inner="0" tooltip="Data sent when asked." id="3" />
+                                            </Box>
+                                            <Box name="Localized Text (4)" id="8" localization="8" tooltip="Send on the output the text associated with the robot&apos;s current voice language.&#x0A;You can display and edit the text associated with any language by&#x0A;selecting the language in the combobox.&#x0A;&#x0A;!!Warning!! The text sent on the output is NOT the displayed one but the one&#x0A;associated with the robot&apos;s current voice language." plugin="localizationbox_plugin" x="491" y="748">
+                                                <bitmap>media/images/box/interaction/vocabulary.png</bitmap>
+                                                <script language="4">
+                                                    <content>
+                                                        <![CDATA[# /!\ Generated content. Do not edit!
+class MyClass(GeneratedClass):
+	def __init__(self):
+		try: # disable autoBind
+			GeneratedClass.__init__(self, False)
+		except TypeError: # if NAOqi < 1.14
+			GeneratedClass.__init__( self )
+
+		self.tts = ALProxy("ALTextToSpeech")
+		self.sentences = {
+			"Arabic" : "  ",
+			"Czech" : " Ahoj ",
+			"Danish" : " Hej ",
+			"German" : " Hallo ",
+			"Greek" : "  ",
+			"English" : " Have fun today at the Dutch Technology Week. ",
+			"Spanish" : " Hola ",
+			"Finnish" : " Hei ",
+			"French" : " Bonjour ",
+			"Italian" : " Ciao ",
+			"Japanese" : " こんにちは ",
+			"Korean" : " 안녕하세요 ",
+			"Dutch" : " Goedemorgen, u ziet er stralend uit! ",
+			"Norwegian" : "  ",
+			"Polish" : " Cześć ",
+			"Brazilian" : " Olá ",
+			"Portuguese" : " Olá ",
+			"Russian" : " Привет ",
+			"Swedish" : " Hallå ",
+			"Turkish" : " Merhaba ",
+			"Chinese" : "  "
+		}
+
+	def onInput_onStart(self):
+		sDefaultLang = self.tts.getLanguage()
+		self.onStopped(self.sentences[sDefaultLang])]]>
+</content>
+                                                </script>
+                                                <pluginContent>
+                                                    <arabic>
+                                                        <![CDATA[]]>
+</arabic>
+                                                    <czech>
+                                                        <![CDATA[Ahoj]]>
+</czech>
+                                                    <danish>
+                                                        <![CDATA[Hej]]>
+</danish>
+                                                    <german>
+                                                        <![CDATA[Hallo]]>
+</german>
+                                                    <greek>
+                                                        <![CDATA[]]>
+</greek>
+                                                    <english>
+                                                        <![CDATA[Have fun today at the Dutch Technology Week.]]>
+</english>
+                                                    <spanish>
+                                                        <![CDATA[Hola]]>
+</spanish>
+                                                    <finnish>
+                                                        <![CDATA[Hei]]>
+</finnish>
+                                                    <french>
+                                                        <![CDATA[Bonjour]]>
+</french>
+                                                    <italian>
+                                                        <![CDATA[Ciao]]>
+</italian>
+                                                    <japanese>
+                                                        <![CDATA[こんにちは]]>
+</japanese>
+                                                    <korean>
+                                                        <![CDATA[안녕하세요]]>
+</korean>
+                                                    <dutch>
+                                                        <![CDATA[Goedemorgen, u ziet er stralend uit!]]>
+</dutch>
+                                                    <norwegian>
+                                                        <![CDATA[]]>
+</norwegian>
+                                                    <polish>
+                                                        <![CDATA[Cześć]]>
+</polish>
+                                                    <brazilian>
+                                                        <![CDATA[Olá]]>
+</brazilian>
+                                                    <portuguese>
+                                                        <![CDATA[Olá]]>
+</portuguese>
+                                                    <russian>
+                                                        <![CDATA[Привет]]>
+</russian>
+                                                    <swedish>
+                                                        <![CDATA[Hallå]]>
+</swedish>
+                                                    <turkish>
+                                                        <![CDATA[Merhaba]]>
+</turkish>
+                                                    <chinese>
+                                                        <![CDATA[]]>
+</chinese>
+                                                    <language>12</language>
+                                                </pluginContent>
+                                                <Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when diagram is loaded." id="1" />
+                                                <Input name="onStart" type="1" type_size="1" nature="2" inner="0" tooltip="Data is sent on the output when this input is stimulated." id="2" />
+                                                <Output name="onStopped" type="3" type_size="1" nature="1" inner="0" tooltip="Data sent when asked." id="3" />
+                                            </Box>
+                                            <Box name="Localized Text (5)" id="9" localization="8" tooltip="Send on the output the text associated with the robot&apos;s current voice language.&#x0A;You can display and edit the text associated with any language by&#x0A;selecting the language in the combobox.&#x0A;&#x0A;!!Warning!! The text sent on the output is NOT the displayed one but the one&#x0A;associated with the robot&apos;s current voice language." plugin="localizationbox_plugin" x="489" y="609">
+                                                <bitmap>media/images/box/interaction/vocabulary.png</bitmap>
+                                                <script language="4">
+                                                    <content>
+                                                        <![CDATA[# /!\ Generated content. Do not edit!
+class MyClass(GeneratedClass):
+	def __init__(self):
+		try: # disable autoBind
+			GeneratedClass.__init__(self, False)
+		except TypeError: # if NAOqi < 1.14
+			GeneratedClass.__init__( self )
+
+		self.tts = ALProxy("ALTextToSpeech")
+		self.sentences = {
+			"Arabic" : "  ",
+			"Czech" : " Ahoj ",
+			"Danish" : " Hej ",
+			"German" : " Hallo ",
+			"Greek" : "  ",
+			"English" : " Have fun today at the Dutch Technology Week. ",
+			"Spanish" : " Hola ",
+			"Finnish" : " Hei ",
+			"French" : " Bonjour ",
+			"Italian" : " Ciao ",
+			"Japanese" : " こんにちは ",
+			"Korean" : " 안녕하세요 ",
+			"Dutch" : " Hallo daar! Ik hoop dat je een leuke dag hebt ",
+			"Norwegian" : "  ",
+			"Polish" : " Cześć ",
+			"Brazilian" : " Olá ",
+			"Portuguese" : " Olá ",
+			"Russian" : " Привет ",
+			"Swedish" : " Hallå ",
+			"Turkish" : " Merhaba ",
+			"Chinese" : "  "
+		}
+
+	def onInput_onStart(self):
+		sDefaultLang = self.tts.getLanguage()
+		self.onStopped(self.sentences[sDefaultLang])]]>
+</content>
+                                                </script>
+                                                <pluginContent>
+                                                    <arabic>
+                                                        <![CDATA[]]>
+</arabic>
+                                                    <czech>
+                                                        <![CDATA[Ahoj]]>
+</czech>
+                                                    <danish>
+                                                        <![CDATA[Hej]]>
+</danish>
+                                                    <german>
+                                                        <![CDATA[Hallo]]>
+</german>
+                                                    <greek>
+                                                        <![CDATA[]]>
+</greek>
+                                                    <english>
+                                                        <![CDATA[Have fun today at the Dutch Technology Week.]]>
+</english>
+                                                    <spanish>
+                                                        <![CDATA[Hola]]>
+</spanish>
+                                                    <finnish>
+                                                        <![CDATA[Hei]]>
+</finnish>
+                                                    <french>
+                                                        <![CDATA[Bonjour]]>
+</french>
+                                                    <italian>
+                                                        <![CDATA[Ciao]]>
+</italian>
+                                                    <japanese>
+                                                        <![CDATA[こんにちは]]>
+</japanese>
+                                                    <korean>
+                                                        <![CDATA[안녕하세요]]>
+</korean>
+                                                    <dutch>
+                                                        <![CDATA[Hallo daar! Ik hoop dat je een leuke dag hebt]]>
+</dutch>
+                                                    <norwegian>
+                                                        <![CDATA[]]>
+</norwegian>
+                                                    <polish>
+                                                        <![CDATA[Cześć]]>
+</polish>
+                                                    <brazilian>
+                                                        <![CDATA[Olá]]>
+</brazilian>
+                                                    <portuguese>
+                                                        <![CDATA[Olá]]>
+</portuguese>
+                                                    <russian>
+                                                        <![CDATA[Привет]]>
+</russian>
+                                                    <swedish>
+                                                        <![CDATA[Hallå]]>
+</swedish>
+                                                    <turkish>
+                                                        <![CDATA[Merhaba]]>
+</turkish>
+                                                    <chinese>
+                                                        <![CDATA[]]>
+</chinese>
+                                                    <language>12</language>
+                                                </pluginContent>
+                                                <Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when diagram is loaded." id="1" />
+                                                <Input name="onStart" type="1" type_size="1" nature="2" inner="0" tooltip="Data is sent on the output when this input is stimulated." id="2" />
+                                                <Output name="onStopped" type="3" type_size="1" nature="1" inner="0" tooltip="Data sent when asked." id="3" />
+                                            </Box>
+                                            <Box name="Localized Text (6)" id="10" localization="8" tooltip="Send on the output the text associated with the robot&apos;s current voice language.&#x0A;You can display and edit the text associated with any language by&#x0A;selecting the language in the combobox.&#x0A;&#x0A;!!Warning!! The text sent on the output is NOT the displayed one but the one&#x0A;associated with the robot&apos;s current voice language." plugin="localizationbox_plugin" x="467" y="1034">
+                                                <bitmap>media/images/box/interaction/vocabulary.png</bitmap>
+                                                <script language="4">
+                                                    <content>
+                                                        <![CDATA[# /!\ Generated content. Do not edit!
+class MyClass(GeneratedClass):
+	def __init__(self):
+		try: # disable autoBind
+			GeneratedClass.__init__(self, False)
+		except TypeError: # if NAOqi < 1.14
+			GeneratedClass.__init__( self )
+
+		self.tts = ALProxy("ALTextToSpeech")
+		self.sentences = {
+			"Arabic" : "  ",
+			"Czech" : " Ahoj ",
+			"Danish" : " Hej ",
+			"German" : " Hallo ",
+			"Greek" : "  ",
+			"English" : " Have fun today at the Dutch Technology Week. ",
+			"Spanish" : " Hola ",
+			"Finnish" : " Hei ",
+			"French" : " Bonjour ",
+			"Italian" : " Ciao ",
+			"Japanese" : " こんにちは ",
+			"Korean" : " 안녕하세요 ",
+			"Dutch" : " Hallo! Ik ben niet als enige hier, er zijn ook een hoop vrienden! ",
+			"Norwegian" : "  ",
+			"Polish" : " Cześć ",
+			"Brazilian" : " Olá ",
+			"Portuguese" : " Olá ",
+			"Russian" : " Привет ",
+			"Swedish" : " Hallå ",
+			"Turkish" : " Merhaba ",
+			"Chinese" : "  "
+		}
+
+	def onInput_onStart(self):
+		sDefaultLang = self.tts.getLanguage()
+		self.onStopped(self.sentences[sDefaultLang])]]>
+</content>
+                                                </script>
+                                                <pluginContent>
+                                                    <arabic>
+                                                        <![CDATA[]]>
+</arabic>
+                                                    <czech>
+                                                        <![CDATA[Ahoj]]>
+</czech>
+                                                    <danish>
+                                                        <![CDATA[Hej]]>
+</danish>
+                                                    <german>
+                                                        <![CDATA[Hallo]]>
+</german>
+                                                    <greek>
+                                                        <![CDATA[]]>
+</greek>
+                                                    <english>
+                                                        <![CDATA[Have fun today at the Dutch Technology Week.]]>
+</english>
+                                                    <spanish>
+                                                        <![CDATA[Hola]]>
+</spanish>
+                                                    <finnish>
+                                                        <![CDATA[Hei]]>
+</finnish>
+                                                    <french>
+                                                        <![CDATA[Bonjour]]>
+</french>
+                                                    <italian>
+                                                        <![CDATA[Ciao]]>
+</italian>
+                                                    <japanese>
+                                                        <![CDATA[こんにちは]]>
+</japanese>
+                                                    <korean>
+                                                        <![CDATA[안녕하세요]]>
+</korean>
+                                                    <dutch>
+                                                        <![CDATA[Hallo! Ik ben niet als enige hier, er zijn ook een hoop vrienden!]]>
+</dutch>
+                                                    <norwegian>
+                                                        <![CDATA[]]>
+</norwegian>
+                                                    <polish>
+                                                        <![CDATA[Cześć]]>
+</polish>
+                                                    <brazilian>
+                                                        <![CDATA[Olá]]>
+</brazilian>
+                                                    <portuguese>
+                                                        <![CDATA[Olá]]>
+</portuguese>
+                                                    <russian>
+                                                        <![CDATA[Привет]]>
+</russian>
+                                                    <swedish>
+                                                        <![CDATA[Hallå]]>
+</swedish>
+                                                    <turkish>
+                                                        <![CDATA[Merhaba]]>
+</turkish>
+                                                    <chinese>
+                                                        <![CDATA[]]>
+</chinese>
+                                                    <language>12</language>
+                                                </pluginContent>
+                                                <Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when diagram is loaded." id="1" />
+                                                <Input name="onStart" type="1" type_size="1" nature="2" inner="0" tooltip="Data is sent on the output when this input is stimulated." id="2" />
+                                                <Output name="onStopped" type="3" type_size="1" nature="1" inner="0" tooltip="Data sent when asked." id="3" />
+                                            </Box>
+                                            <Box name="Localized Text (7)" id="11" localization="8" tooltip="Send on the output the text associated with the robot&apos;s current voice language.&#x0A;You can display and edit the text associated with any language by&#x0A;selecting the language in the combobox.&#x0A;&#x0A;!!Warning!! The text sent on the output is NOT the displayed one but the one&#x0A;associated with the robot&apos;s current voice language." plugin="localizationbox_plugin" x="458" y="881">
+                                                <bitmap>media/images/box/interaction/vocabulary.png</bitmap>
+                                                <script language="4">
+                                                    <content>
+                                                        <![CDATA[# /!\ Generated content. Do not edit!
+class MyClass(GeneratedClass):
+	def __init__(self):
+		try: # disable autoBind
+			GeneratedClass.__init__(self, False)
+		except TypeError: # if NAOqi < 1.14
+			GeneratedClass.__init__( self )
+
+		self.tts = ALProxy("ALTextToSpeech")
+		self.sentences = {
+			"Arabic" : "  ",
+			"Czech" : " Ahoj ",
+			"Danish" : " Hej ",
+			"German" : " Hallo ",
+			"Greek" : "  ",
+			"English" : " Have fun today at the Dutch Technology Week. ",
+			"Spanish" : " Hola ",
+			"Finnish" : " Hei ",
+			"French" : " Bonjour ",
+			"Italian" : " Ciao ",
+			"Japanese" : " こんにちは ",
+			"Korean" : " 안녕하세요 ",
+			"Dutch" : " Goedemorgen, ik heb er zin in, u ook? ",
+			"Norwegian" : "  ",
+			"Polish" : " Cześć ",
+			"Brazilian" : " Olá ",
+			"Portuguese" : " Olá ",
+			"Russian" : " Привет ",
+			"Swedish" : " Hallå ",
+			"Turkish" : " Merhaba ",
+			"Chinese" : "  "
+		}
+
+	def onInput_onStart(self):
+		sDefaultLang = self.tts.getLanguage()
+		self.onStopped(self.sentences[sDefaultLang])]]>
+</content>
+                                                </script>
+                                                <pluginContent>
+                                                    <arabic>
+                                                        <![CDATA[]]>
+</arabic>
+                                                    <czech>
+                                                        <![CDATA[Ahoj]]>
+</czech>
+                                                    <danish>
+                                                        <![CDATA[Hej]]>
+</danish>
+                                                    <german>
+                                                        <![CDATA[Hallo]]>
+</german>
+                                                    <greek>
+                                                        <![CDATA[]]>
+</greek>
+                                                    <english>
+                                                        <![CDATA[Have fun today at the Dutch Technology Week.]]>
+</english>
+                                                    <spanish>
+                                                        <![CDATA[Hola]]>
+</spanish>
+                                                    <finnish>
+                                                        <![CDATA[Hei]]>
+</finnish>
+                                                    <french>
+                                                        <![CDATA[Bonjour]]>
+</french>
+                                                    <italian>
+                                                        <![CDATA[Ciao]]>
+</italian>
+                                                    <japanese>
+                                                        <![CDATA[こんにちは]]>
+</japanese>
+                                                    <korean>
+                                                        <![CDATA[안녕하세요]]>
+</korean>
+                                                    <dutch>
+                                                        <![CDATA[Goedemorgen, ik heb er zin in, u ook?]]>
+</dutch>
+                                                    <norwegian>
+                                                        <![CDATA[]]>
+</norwegian>
+                                                    <polish>
+                                                        <![CDATA[Cześć]]>
+</polish>
+                                                    <brazilian>
+                                                        <![CDATA[Olá]]>
+</brazilian>
+                                                    <portuguese>
+                                                        <![CDATA[Olá]]>
+</portuguese>
+                                                    <russian>
+                                                        <![CDATA[Привет]]>
+</russian>
+                                                    <swedish>
+                                                        <![CDATA[Hallå]]>
+</swedish>
+                                                    <turkish>
+                                                        <![CDATA[Merhaba]]>
+</turkish>
+                                                    <chinese>
+                                                        <![CDATA[]]>
+</chinese>
+                                                    <language>12</language>
+                                                </pluginContent>
+                                                <Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when diagram is loaded." id="1" />
+                                                <Input name="onStart" type="1" type_size="1" nature="2" inner="0" tooltip="Data is sent on the output when this input is stimulated." id="2" />
+                                                <Output name="onStopped" type="3" type_size="1" nature="1" inner="0" tooltip="Data sent when asked." id="3" />
+                                            </Box>
+                                            <Link inputowner="0" indexofinput="4" outputowner="2" indexofoutput="4" />
+                                            <Link inputowner="2" indexofinput="2" outputowner="5" indexofoutput="3" />
+                                            <Link inputowner="1" indexofinput="2" outputowner="0" indexofoutput="2" />
+                                            <Link inputowner="3" indexofinput="2" outputowner="1" indexofoutput="3" />
+                                            <Link inputowner="5" indexofinput="2" outputowner="3" indexofoutput="4" />
+                                            <Link inputowner="4" indexofinput="2" outputowner="3" indexofoutput="5" />
+                                            <Link inputowner="6" indexofinput="2" outputowner="3" indexofoutput="6" />
+                                            <Link inputowner="2" indexofinput="2" outputowner="4" indexofoutput="3" />
+                                            <Link inputowner="2" indexofinput="2" outputowner="6" indexofoutput="3" />
+                                            <Link inputowner="7" indexofinput="2" outputowner="3" indexofoutput="7" />
+                                            <Link inputowner="2" indexofinput="2" outputowner="7" indexofoutput="3" />
+                                            <Link inputowner="9" indexofinput="2" outputowner="3" indexofoutput="8" />
+                                            <Link inputowner="8" indexofinput="2" outputowner="3" indexofoutput="9" />
+                                            <Link inputowner="2" indexofinput="2" outputowner="9" indexofoutput="3" />
+                                            <Link inputowner="2" indexofinput="2" outputowner="8" indexofoutput="3" />
+                                            <Link inputowner="11" indexofinput="2" outputowner="3" indexofoutput="10" />
+                                            <Link inputowner="2" indexofinput="2" outputowner="11" indexofoutput="3" />
+                                            <Link inputowner="10" indexofinput="2" outputowner="3" indexofoutput="11" />
+                                            <Link inputowner="2" indexofinput="2" outputowner="10" indexofoutput="3" />
+                                        </Diagram>
+                                    </BehaviorKeyframe>
+                                </BehaviorLayer>
+                            </Timeline>
+                            <Resource name="Speech" type="Lock" timeout="0" />
+                        </Box>
+                        <Box name="Set Language" id="5" localization="8" tooltip="Select the language you would like the robot to speak and understand. Any following call to&#x0A;ALSpeechRecognition (Speech Reco. box for instance) or ALTextToSpeech (Say box&#x0A;for instance) will use this language." x="104" y="69">
+                            <bitmap>media/images/box/interaction/say.png</bitmap>
+                            <script language="4">
+                                <content>
+                                    <![CDATA[class MyClass(GeneratedClass):
+    def __init__(self):
+        GeneratedClass.__init__(self, False)
+
+    def onLoad(self):
+        try:
+            self.tts = ALProxy("ALTextToSpeech")
+        except:
+            self.logger.warn("ALTextToSpeech is not available, language setting cannot be applied to speech")
+            self.tts = None
+
+        try:
+            self.asr = ALProxy("ALSpeechRecognition")
+        except:
+            self.logger.warn("ALSpeechRecognition is not available, language setting cannot be applied to recognition")
+            self.asr = None
+
+        try:
+            self.dialog = ALProxy("ALDialog")
+        except:
+            self.logger.warn("ALDialog is not available, language setting cannot be applied to dialog")
+            self.dialog = None
+
+    def onInput_onSet(self):
+        lang = self.getParameter("Language")
+        try:
+            if self.asr:
+                self.asr.setLanguage( self.getParameter("Language") )
+            if self.tts:
+                self.tts.setLanguage( self.getParameter("Language") )
+            if self.dialog:
+                self.dialog.setLanguage( self.getParameter("Language") )
+            if self.tts is None and self.asr is None and self.dialog is None:
+                raise RuntimeError("Cannot set language: neither ALTextToSpeech nor ALSpeechRecognition nor ALDialog is available.")
+            self.onReady()
+        except:
+            error = "Language " + lang + " cannot be set."
+            self.logger.warn(error)
+            self.onError(error)]]>
+</content>
+                            </script>
+                            <Input name="onLoad" type="1" type_size="1" nature="0" inner="1" tooltip="Signal sent when diagram is loaded." id="1" />
+                            <Input name="onSet" type="1" type_size="1" nature="1" inner="0" tooltip="The data is set when a signal is received on this input." id="2" />
+                            <Output name="onReady" type="1" type_size="1" nature="2" inner="0" tooltip="Signal sent when the data has been set." id="3" />
+                            <Output name="onError" type="3" type_size="1" nature="2" inner="0" tooltip="Error output:&#x0A;- triggered if the language asked cannot be set" id="4" />
+                            <Parameter name="Language" inherits_from_parent="0" content_type="3" value="Dutch" default_value="English" custom_choice="1" tooltip="Set the language the robot speaks and understands." id="5">
+                                <Choice value="Arabic" />
+                                <Choice value="Brazilian" />
+                                <Choice value="Chinese" />
+                                <Choice value="Czech" />
+                                <Choice value="Danish" />
+                                <Choice value="Dutch" />
+                                <Choice value="English" />
+                                <Choice value="Finnish" />
+                                <Choice value="French" />
+                                <Choice value="German" />
+                                <Choice value="Greek" />
+                                <Choice value="Italian" />
+                                <Choice value="Japanese" />
+                                <Choice value="Korean" />
+                                <Choice value="Norwegian" />
+                                <Choice value="Polish" />
+                                <Choice value="Portuguese" />
+                                <Choice value="Russian" />
+                                <Choice value="Spanish" />
+                                <Choice value="Swedish" />
+                                <Choice value="Turkish" />
+                            </Parameter>
+                            <Resource name="Speech" type="Lock" timeout="0" />
+                        </Box>
+                        <Link inputowner="2" indexofinput="2" outputowner="4" indexofoutput="6" />
+                        <Link inputowner="1" indexofinput="2" outputowner="2" indexofoutput="4" />
+                        <Link inputowner="4" indexofinput="2" outputowner="2" indexofoutput="3" />
+                        <Link inputowner="3" indexofinput="2" outputowner="2" indexofoutput="4" />
+                        <Link inputowner="4" indexofinput="2" outputowner="3" indexofoutput="4" />
+                        <Link inputowner="5" indexofinput="2" outputowner="0" indexofoutput="2" />
+                        <Link inputowner="4" indexofinput="2" outputowner="5" indexofoutput="3" />
+                    </Diagram>
+                </BehaviorKeyframe>
+            </BehaviorLayer>
+        </Timeline>
+    </Box>
+</ChoregrapheProject>
